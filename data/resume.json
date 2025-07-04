@@ -1,0 +1,37 @@
+{
+  "name": "Гирос Глафира Александровна",
+  "age": 22,
+  "location": "Санкт-Петербург",
+  "citizenship": "Казахстан",
+  "work_permit": ["Россия", "Казахстан"],
+  "desired_position": "Графический и веб-дизайнер",
+  "employment_type": ["полная занятость", "частичная занятость", "проектная работа", "стажировка"],
+  "work_schedule": ["полный день", "гибкий график", "удаленная работа"],
+  "experience": "2 года 3 месяца",
+  "education": {
+    "degree": "Бакалавр",
+    "university": "Санкт-Петербургский государственный университет промышленных технологий и дизайна",
+    "specialization": "Графический дизайн в мультимедиа",
+    "year": 2024
+  },
+  "skills": {
+    "design_tools": ["Figma", "Adobe Photoshop", "Adobe Illustrator", "Blender 3D", "After Effects", "Premiere"],
+    "design_skills": ["UI/UX", "веб-дизайн", "графический дизайн", "анимация", "моушн-дизайн", "адаптивный дизайн", "дизайн мобильных приложений"],
+    "branding": ["айдентика", "брендинг", "разработка логотипов", "цветовые схемы", "шрифтовые решения"],
+    "other": ["3D моделирование", "векторная графика", "обработка изображений", "цветокоррекция", "подготовка презентаций"]
+  },
+  "languages": {
+    "russian": "родной",
+    "english": "B1 (средний)",
+    "kazakh": "A1 (начальный)"
+  },
+  "portfolio": {
+    "notion": "https://www.notion.so/UX-UI-1ece44ba0acb802d890ac0c7a678b796",
+    "behance": "https://www.behance.net/glashasoll9bea"
+  },
+  "contact": {
+    "phone": "+7 (991) 0232808",
+    "email": "girossg@mail.ru",
+    "telegram": "https://t.me/glashhhhha"
+  }
+}
