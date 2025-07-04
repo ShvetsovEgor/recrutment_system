@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Вакансии - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">Вакансии</h1>
+            <p class="text-muted">Управление вакансиями</p>
+        </div>
+        <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Новая вакансия
+        </a>
+    </div>
+</div>
+
+{% if vacancies %}
+<div class="row">
+    {% for vacancy in vacancies %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">{{ vacancy.title }}</h5>
+                    <span class="badge {% if vacancy.status == 'active' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                        {% if vacancy.status == 'active' %}Активна{% else %}Закрыта{% endif %}
+                    </span>
+                </div>
+                
+                <p class="text-muted mb-2">
+                    <i class="fas fa-building me-1"></i>{{ vacancy.company }}
+                </p>
+                
+                <p class="text-muted mb-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>{{ vacancy.location }}
+                </p>
+                
+                {% if vacancy.salary_min or vacancy.salary_max %}
+                <p class="text-muted mb-3">
+                    <i class="fas fa-money-bill-wave me-1"></i>
+                    {% if vacancy.salary_min and vacancy.salary_max %}
+                        {{ vacancy.salary_min }} - {{ vacancy.salary_max }} ₽
+                    {% elif vacancy.salary_min %}
+                        от {{ vacancy.salary_min }} ₽
+                    {% elif vacancy.salary_max %}
+                        до {{ vacancy.salary_max }} ₽
+                    {% endif %}
+                </p>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-users me-1"></i>{{ vacancy.candidates_count }} кандидатов
+                    </small>
+                    <small class="text-muted">
+                        {{ vacancy.created_at[:10] if vacancy.created_at else 'Недавно' }}
+                    </small>
+                </div>
+                <div class="mt-3">
+                    <a href="{{ url_for('vacancy_candidates', vacancy_id=vacancy.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-users me-1"></i>Просмотреть кандидатов
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                <h5>Нет вакансий</h5>
+                <p class="text-muted">Создайте первую вакансию для начала работы</p>
+                <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Создать вакансию
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ candidate.name }} - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">{{ candidate.name }}</h1>
+            <p class="text-muted">{{ candidate.position }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('candidates') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Назад
+            </a>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Печать
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основная информация -->
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Email</label>
+                        <p class="mb-0">{{ candidate.email }}</p>
+                    </div>
+                    {% if candidate.phone %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Телефон</label>
+                        <p class="mb-0">{{ candidate.phone }}</p>
+                    </div>
+                    {% endif %}
+                    {% if candidate.experience %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Опыт работы</label>
+                        <p class="mb-0">{{ candidate.experience }}</p>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label text-muted">Статус</label>
+                        <p class="mb-0">
+                            <span class="badge {% if candidate.status == 'new' %}bg-info{% elif candidate.status == 'interview' %}bg-warning{% elif candidate.status == 'hired' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                                {% if candidate.status == 'new' %}Новый{% elif candidate.status == 'interview' %}Собеседование{% elif candidate.status == 'hired' %}Принят{% else %}{{ candidate.status }}{% endif %}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Навыки -->
+        {% if candidate.skills %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Навыки</h5>
+            </div>
+            <div class="card-body">
+                {% for skill in candidate.skills %}
+                <span class="badge bg-primary me-2 mb-2">{{ skill }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Резюме -->
+        {% if candidate.resume_path %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Резюме</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Резюме загружено
+                </p>
+                <a href="#" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-download me-1"></i>Скачать
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="col-lg-4">
+        <!-- Скор соответствия -->
+        {% if matching_score is not none %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Соответствие вакансии</h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="matching-score {% if matching_score >= 0.8 %}score-high{% elif matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
+                    {{ "%.0f"|format(matching_score * 100) }}%
+                </div>
+                <p class="text-muted mb-0">
+                    {% if matching_score >= 0.8 %}
+                        Отличное соответствие
+                    {% elif matching_score >= 0.6 %}
+                        Хорошее соответствие
+                    {% else %}
+                        Низкое соответствие
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Действия -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-phone me-2"></i>Позвонить
+                    </button>
+                    <button class="btn btn-outline-primary">
+                        <i class="fas fa-envelope me-2"></i>Написать email
+                    </button>
+                    <button class="btn btn-outline-warning">
+                        <i class="fas fa-calendar me-2"></i>Назначить собеседование
+                    </button>
+                    <button class="btn btn-outline-success">
+                        <i class="fas fa-check me-2"></i>Принять на работу
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">Добавлен</small>
+                        <p class="mb-0">{{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}</p>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">ID</small>
+                        <p class="mb-0 text-muted">{{ candidate.id[:8] }}...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

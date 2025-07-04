@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Кандидаты - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">Кандидаты</h1>
+            <p class="text-muted">Управление кандидатами</p>
+        </div>
+        <a href="{{ url_for('new_candidate') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Новый кандидат
+        </a>
+    </div>
+</div>
+
+{% if candidates %}
+<div class="row">
+    {% for candidate in candidates %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="card-title mb-0">{{ candidate.name }}</h5>
+                    <span class="badge {% if candidate.status == 'new' %}bg-info{% elif candidate.status == 'interview' %}bg-warning{% elif candidate.status == 'hired' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                        {% if candidate.status == 'new' %}Новый{% elif candidate.status == 'interview' %}Собеседование{% elif candidate.status == 'hired' %}Принят{% else %}{{ candidate.status }}{% endif %}
+                    </span>
+                </div>
+                
+                <p class="text-muted mb-2">
+                    <i class="fas fa-briefcase me-1"></i>{{ candidate.position }}
+                </p>
+                
+                <p class="text-muted mb-2">
+                    <i class="fas fa-envelope me-1"></i>{{ candidate.email }}
+                </p>
+                
+                {% if candidate.phone %}
+                <p class="text-muted mb-2">
+                    <i class="fas fa-phone me-1"></i>{{ candidate.phone }}
+                </p>
+                {% endif %}
+                
+                {% if candidate.experience %}
+                <p class="text-muted mb-3">
+                    <i class="fas fa-clock me-1"></i>{{ candidate.experience }}
+                </p>
+                {% endif %}
+                
+                {% if candidate.skills %}
+                <div class="mb-3">
+                    <small class="text-muted">Навыки:</small>
+                    <div class="mt-1">
+                        {% for skill in candidate.skills[:3] %}
+                        <span class="badge bg-light text-dark me-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% if candidate.skills|length > 3 %}
+                        <span class="badge bg-light text-dark">+{{ candidate.skills|length - 3 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}
+                    </small>
+                    <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i>Просмотр
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-user-tie fa-3x text-muted mb-3"></i>
+                <h5>Нет кандидатов</h5>
+                <p class="text-muted">Добавьте первого кандидата для начала работы</p>
+                <a href="{{ url_for('new_candidate') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Добавить кандидата
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

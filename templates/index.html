@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Дашборд</h1>
+        <p class="text-muted">Обзор системы подбора персонала</p>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50">Всего вакансий</h6>
+                        <h2 class="mb-0">{{ stats.total_vacancies }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-briefcase fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50">Активные вакансии</h6>
+                        <h2 class="mb-0">{{ stats.active_vacancies }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50">Всего кандидатов</h6>
+                        <h2 class="mb-0">{{ stats.total_candidates }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-tie fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50">Новые кандидаты</h6>
+                        <h2 class="mb-0">{{ stats.recent_candidates }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-plus fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Быстрые действия</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary w-100 mb-2">
+                            <i class="fas fa-plus me-2"></i>Создать вакансию
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('new_candidate') }}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-user-plus me-2"></i>Добавить кандидата
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Недавние вакансии и кандидаты -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Недавние вакансии</h5>
+                <a href="{{ url_for('vacancies') }}" class="btn btn-sm btn-outline-primary">Все вакансии</a>
+            </div>
+            <div class="card-body">
+                {% if recent_vacancies %}
+                    {% for vacancy in recent_vacancies %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-1">{{ vacancy.title }}</h6>
+                            <small class="text-muted">{{ vacancy.company }} • {{ vacancy.location }}</small>
+                        </div>
+                        <span class="badge bg-success status-badge">
+                            {% if vacancy.status == 'active' %}Активна{% else %}Закрыта{% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Нет вакансий</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Недавние кандидаты</h5>
+                <a href="{{ url_for('candidates') }}" class="btn btn-sm btn-outline-primary">Все кандидаты</a>
+            </div>
+            <div class="card-body">
+                {% if recent_candidates %}
+                    {% for candidate in recent_candidates %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-1">{{ candidate.name }}</h6>
+                            <small class="text-muted">{{ candidate.position }} • {{ candidate.email }}</small>
+                        </div>
+                        <span class="badge bg-info status-badge">
+                            {% if candidate.status == 'new' %}Новый{% else %}{{ candidate.status }}{% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Нет кандидатов</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

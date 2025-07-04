@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Кандидаты для {{ vacancy.title }} - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-0">Кандидаты для вакансии</h1>
+            <p class="text-muted">{{ vacancy.title }} - {{ vacancy.company }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('vacancies') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Назад к вакансиям
+            </a>
+            <a href="{{ url_for('new_candidate') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Добавить кандидата
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Фильтры -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Фильтры и настройки</h5>
+                <form method="GET" class="row" id="filter-form">
+                    <div class="col-md-4 mb-3">
+                        <label for="status" class="form-label">Статус кандидата</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">Все статусы</option>
+                            <option value="new" {% if status_filter == 'new' %}selected{% endif %}>Новые</option>
+                            <option value="interview" {% if status_filter == 'interview' %}selected{% endif %}>На собеседовании</option>
+                            <option value="hired" {% if status_filter == 'hired' %}selected{% endif %}>Принятые</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="min_score" class="form-label">Минимальный скор (%)</label>
+                        <input type="range" class="form-range" id="min_score" name="min_score" 
+                               min="0" max="100" value="{{ min_score | int }}" 
+                               oninput="this.nextElementSibling.value = this.value + '%'">
+                        <output>{{ min_score | int }}%</output>
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <a href="{{ url_for('vacancy_candidates', vacancy_id=vacancy.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Сбросить
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-primary mb-0">{{ candidates|length }}</h4>
+                <small class="text-muted">Всего кандидатов</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-success mb-0">{{ candidates|selectattr('matching_score', '>=', 0.8)|list|length }}</h4>
+                <small class="text-muted">Отличное соответствие (80%+)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-warning mb-0">{{ candidates|selectattr('matching_score', '>=', 0.6)|selectattr('matching_score', '<', 0.8)|list|length }}</h4>
+                <small class="text-muted">Хорошее соответствие (60-80%)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h4 class="text-danger mb-0">{{ candidates|selectattr('matching_score', '<', 0.6)|list|length }}</h4>
+                <small class="text-muted">Низкое соответствие (<60%)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список кандидатов -->
+{% if candidates %}
+<div class="row">
+    {% for candidate in candidates %}
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h5 class="card-title mb-1">{{ candidate.name }}</h5>
+                        <p class="text-muted mb-0">{{ candidate.position }}</p>
+                    </div>
+                    <div class="text-end">
+                        <div class="matching-score {% if candidate.matching_score >= 0.8 %}score-high{% elif candidate.matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
+                            {{ candidate.score_percentage }}%
+                        </div>
+                        <small class="text-muted">соответствие</small>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">Email:</small>
+                        <p class="mb-1">{{ candidate.email }}</p>
+                    </div>
+                    {% if candidate.phone %}
+                    <div class="col-6">
+                        <small class="text-muted">Телефон:</small>
+                        <p class="mb-1">{{ candidate.phone }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if candidate.experience %}
+                <div class="mb-3">
+                    <small class="text-muted">Опыт:</small>
+                    <p class="mb-1">{{ candidate.experience }}</p>
+                </div>
+                {% endif %}
+                
+                {% if candidate.skills %}
+                <div class="mb-3">
+                    <small class="text-muted">Навыки:</small>
+                    <div class="mt-1">
+                        {% for skill in candidate.skills[:4] %}
+                        <span class="badge bg-light text-dark me-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% if candidate.skills|length > 4 %}
+                        <span class="badge bg-light text-dark">+{{ candidate.skills|length - 4 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge {% if candidate.status == 'new' %}bg-info{% elif candidate.status == 'interview' %}bg-warning{% elif candidate.status == 'hired' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
+                        {% if candidate.status == 'new' %}Новый{% elif candidate.status == 'interview' %}Собеседование{% elif candidate.status == 'hired' %}Принят{% else %}{{ candidate.status }}{% endif %}
+                    </span>
+                    <div class="btn-group">
+                        <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>Просмотр
+                        </a>
+                        <button class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-phone me-1"></i>Позвонить
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning">
+                            <i class="fas fa-calendar me-1"></i>Собеседование
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>Кандидаты не найдены</h5>
+                <p class="text-muted">
+                    {% if status_filter or min_score > 0 %}
+                        Попробуйте изменить фильтры или добавить новых кандидатов
+                    {% else %}
+                        Добавьте первого кандидата для этой вакансии
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('new_candidate') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Добавить кандидата
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Автоматическая отправка формы при изменении фильтров
+const form = document.getElementById('filter-form');
+const statusSelect = document.getElementById('status');
+const minScoreRange = document.getElementById('min_score');
+
+statusSelect.addEventListener('change', function() {
+    form.submit();
+});
+minScoreRange.addEventListener('change', function() {
+    form.submit();
+});
+// Обновление значения range при изменении
+minScoreRange.addEventListener('input', function() {
+    this.nextElementSibling.value = this.value + '%';
+});
+</script>
+{% endblock %} 
