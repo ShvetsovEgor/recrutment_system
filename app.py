@@ -11,55 +11,49 @@ from database import db
 from ocr_utils import ocr_pdf, process_resume_with_gpt
 
 
-def calculate_matching_score(candidate, vacancy):
-    """Расчет скора соответствия кандидата и вакансии с использованием YandexGPT"""
-
-    # Сначала проверяем, есть ли уже результат в базе данных
-    existing_result = db.get_detailed_matching_result(candidate['id'], vacancy['id'])
-    if existing_result:
-        print(f"Найден существующий результат матчинга для кандидата {candidate['id']} и вакансии {vacancy['id']}")
-        return existing_result['final_score'] / 100.0  # Конвертируем обратно в 0-1 диапазон
-
+def calculate_matching_score(candidate, vacancy, return_details=False):
+    """Расчет скора соответствия кандидата и вакансии с использованием YandexGPT (только через scoring, с отладкой)"""
     try:
         from langchain_community.llms import YandexGPT
         import json
+        import re
         YANDEX_API_KEY = os.environ.get("YANDEXGPT_API_KEY")
         YANDEX_FOLDER_ID = os.environ.get("YANDEXGPT_FOLDER_ID")
         YANDEX_MODEL = os.environ.get("YANDEXGPT_MODEL")
-        # Конфигурация YandexGPT из config.py
         GPT = YandexGPT(
             api_key=YANDEX_API_KEY,
             folder_id=YANDEX_FOLDER_ID,
             model=YANDEX_MODEL,
             temperature=0
         )
-
         def scoring(candidate_data, vacancy_data):
-            """Функция для анализа соответствия через GPT"""
             prompt = f"""
-            Сравни определенные поля json вакансии с таким же полями json в резюме и оцени соответствие характеристики от 1 до 10.
-            Оценка производится по полям: "age", ("location" and "relocation" (в одно поле)), "work_experience","education","skills","skills_technologies","languages", "desired_position","employment_type","desired_salary".
+            Сравни определенные поля json вакансии с такими же полями json в резюме и оцени соответствие характеристики от 1 до 10.
+            Оценка производится по полям: "age", ("location" и "relocation" (в одно поле)), "work_experience","education","skills","skills_technologies","languages", "desired_position","employment_type","desired_salary".
             Ответ представь в виде json c ключами-характеристиками ("age","location","position","employment_type", "desired_salary","work_exp","education","skills","skills_tech","languages") и полями оценка("score") и обоснование("reason").
             Самое важное условие : Если какое-то поле пропущено или не указано, или имеет значение NULL, или "" ставь -1 в "score" и не оценивай (навыки которых нет в вакансии, но есть у кандидата и который помогут в профессиональной деятельности-это хорошо).
             А также дай общее обоснование оценок, характеристику и вопросы на собеседование для кандидата в ключе "final_score" в поле "reason" (не забудь создать поле "score" в "final_score" со значением 0).
             Вакансия:
-            \"\"\"{json.dumps(vacancy_data, ensure_ascii=False)}\"\"\"
+            {json.dumps(vacancy_data, ensure_ascii=False)}
             Резюме:
-            \"\"\"{json.dumps(candidate_data, ensure_ascii=False)}\"\"\"
+            {json.dumps(candidate_data, ensure_ascii=False)}
             """
-
+            print("[YandexGPT] PROMPT:\n", prompt)
+            ans = GPT.invoke(prompt)
+            ans = ans.replace("```", '')
+            print("[YandexGPT] RESPONSE:\n", ans)
             try:
-                ans = GPT.invoke(prompt)
-                ans = ans.replace("```", '')
                 return json.loads(ans)
             except json.JSONDecodeError:
-                print("Не удалось распарсить JSON от GPT.")
-                return None
-            except Exception as e:
-                print(f"Ошибка при обращении к GPT: {e}")
-                return None
-
-        # Подготавливаем данные для анализа
+                match = re.search(r'"score"\s*:\s*(\d+(?:\.\d+)?)', ans)
+                if match:
+                    return {"final_score": {"score": float(match.group(1))}}
+                match2 = re.search(r'(\d{1,3}(?:\.\d+)?)', ans)
+                if match2:
+                    return {"final_score": {"score": float(match2.group(1))}}
+                return {"final_score": {"score": 0}}
+            except Exception:
+                return {"final_score": {"score": 0}}
         candidate_data = {
             "age": candidate.get('age_range', ''),
             "location": candidate.get('location', ''),
@@ -73,7 +67,6 @@ def calculate_matching_score(candidate, vacancy):
             "employment_type": candidate.get('employment_type', ''),
             "desired_salary": candidate.get('desired_salary', '')
         }
-
         vacancy_data = {
             "title": vacancy.get('title', ''),
             "company": vacancy.get('company', ''),
@@ -83,82 +76,209 @@ def calculate_matching_score(candidate, vacancy):
             "salary_min": vacancy.get('salary_min', ''),
             "salary_max": vacancy.get('salary_max', '')
         }
-
-        # Получаем оценку от GPT
         job_requirements = scoring(candidate_data, vacancy_data)
-
+        score = 0
+        detailed_scores = {}
+        overall_assessment = ''
+        interview_questions = []
+        # Парсим подробные оценки, если они есть
         if job_requirements:
-            # Рассчитываем итоговый скор
-            weights = [0.3, 0.6, 1, 0.8, 0.6, 0.7, 0.8, 1, 1, 0.5, 0]
-            fields = ["age", "location", "position", "employment_type", "desired_salary",
-                      "work_exp", "education", "skills", "skills_tech", "languages"]
-
-            fs = 0
-            fm = 0
-            detailed_scores = {}
-            comments = {}
-
-            for i, field in enumerate(fields):
-                if field in job_requirements and job_requirements[field]["score"] != -1:
-                    score = job_requirements[field]["score"]  # Нормализуем к 0-1
-                    fs += score * weights[i]
-                    fm += weights[i] * 10
-                    detailed_scores[f"{field}_score"] = score
-                    comments[f"{field}_comment"] = job_requirements[field]["reason"]
-                else:
-                    detailed_scores[f"{field}_score"] = 0
-                    comments[f"{field}_comment"] = "Нет данных"
-
-            # Рассчитываем итоговый скор
-            if fm > 0:
-                overall_score = fs / fm
-                job_requirements["final_score"]["score"] = round(overall_score * 100, 1)
-            else:
-                overall_score = 0
-                job_requirements["final_score"]["score"] = 0
-
-            # Формируем общую оценку и вопросы
-            overall_assessment = job_requirements.get("final_score", {}).get("reason", "Оценка выполнена")
-            interview_questions = []
-
-            # Сохраняем детальный результат в БД
-            detailed_result = {
-                'skills_score': detailed_scores.get('skills_score', 0),
-                'skills_comment': comments.get('skills_comment', ''),
-                'experience_score': detailed_scores.get('work_exp_score', 0),
-                'experience_comment': comments.get('work_exp_comment', ''),
-                'position_score': detailed_scores.get('position_score', 0),
-                'position_comment': comments.get('position_comment', ''),
-                'salary_score': detailed_scores.get('desired_salary_score', 0),
-                'salary_comment': comments.get('desired_salary_comment', ''),
-                'education_score': detailed_scores.get('education_score', 0),
-                'education_comment': comments.get('education_comment', ''),
-                'location_score': detailed_scores.get('location_score', 0),
-                'location_comment': comments.get('location_comment', '')
-            }
-
-            # Добавляем или обновляем результат в БД
-            db.add_matching_result(
-                candidate['id'],
-                vacancy['id'],
-                overall_score,
-                detailed_result,
-                overall_assessment,
-                interview_questions
-            )
-
-            return overall_score
-
-        else:
-            # Если GPT недоступен, используем старый метод
-            return calculate_matching_score_fallback(candidate, vacancy)
-
+            # Итоговый скор
+            if "final_score" in job_requirements and "score" in job_requirements["final_score"]:
+                score = job_requirements["final_score"]["score"]
+            # Общая оценка
+            if "final_score" in job_requirements and "reason" in job_requirements["final_score"]:
+                overall_assessment = job_requirements["final_score"]["reason"]
+            # Вопросы на собеседование
+            if "final_score" in job_requirements and "interview_questions" in job_requirements["final_score"]:
+                interview_questions = job_requirements["final_score"]["interview_questions"]
+            # Детальные оценки по полям
+            for key in ["age","location","work_exp","education","skills","skills_tech","languages"]:
+                if key in job_requirements:
+                    raw_score = job_requirements[key].get('score', 0)
+                    # Приводим к диапазону 0-1, если score > 1 (GPT возвращает 0-10)
+                    val = raw_score / 10 if raw_score > 1 else raw_score
+                    # Если значение отрицательное, не учитываем его
+                    detailed_scores[f'{key}_score'] = val if val >= 0 else None
+        try:
+            score = float(score)
+        except Exception:
+            score = 0
+        # Если финальный скор > 1, делим на 10 (GPT возвращает 0-10)
+        score = score / 10 if score > 1 else score
+        if return_details:
+            return score, detailed_scores, overall_assessment, interview_questions
+        return score
     except ImportError:
-        print("YandexGPT не установлен, используем fallback метод")
-        return calculate_matching_score_fallback(candidate, vacancy)
+        print("[YandexGPT] ImportError: langchain_community.llms.YandexGPT не установлен")
+        if return_details:
+            return 0, {}, '', []
+        return 0
     except Exception as e:
-        print(f"Ошибка при использовании GPT: {e}")
-        return calculate_matching_score_fallback(candidate, vacancy)
+        print(f"[YandexGPT] Ошибка: {e}")
+        if return_details:
+            return 0, {}, '', []
+        return 0
+
+
+def calculate_matching_score_fallback(candidate, vacancy):
+    """Fallback метод расчета скора без GPT"""
+    detailed_scores = {}
+    comments = {}
+
+    # Сравнение навыков кандидата с требованиями вакансии
+    if candidate.get('skills') and vacancy.get('requirements'):
+        candidate_skills = candidate['skills']
+        vacancy_requirements = vacancy['requirements']
+        matching_skills = set(candidate_skills) & set(vacancy_requirements)
+        missing_skills = set(vacancy_requirements) - set(candidate_skills)
+        skills_score = len(matching_skills) / max(len(vacancy_requirements), 1)
+        detailed_scores['skills_score'] = skills_score
+        if matching_skills:
+            comments['skills_comment'] = f"Совпадающие навыки: {', '.join(matching_skills)}"
+        if missing_skills:
+            comments['skills_comment'] = comments.get('skills_comment', '') + f". Отсутствуют: {', '.join(missing_skills)}"
+        if not matching_skills and not missing_skills:
+            comments['skills_comment'] = "Нет совпадающих навыков"
+    else:
+        detailed_scores['skills_score'] = 0
+        comments['skills_comment'] = "Нет данных о навыках или требованиях"
+
+    # Сравнение опыта работы
+    if candidate.get('work_experience') and vacancy.get('description'):
+        candidate_exp = candidate['work_experience']
+        vacancy_desc = vacancy['description']
+        from rapidfuzz import fuzz
+        experience_score = fuzz.token_sort_ratio(candidate_exp, vacancy_desc) / 100
+        detailed_scores['experience_score'] = experience_score
+        if experience_score > 0.7:
+            comments['experience_comment'] = "Опыт работы хорошо соответствует требованиям"
+        elif experience_score > 0.4:
+            comments['experience_comment'] = "Опыт работы частично соответствует требованиям"
+        else:
+            comments['experience_comment'] = "Опыт работы слабо соответствует требованиям"
+    else:
+        detailed_scores['experience_score'] = 0
+        comments['experience_comment'] = "Нет данных об опыте работы"
+
+    # Сравнение должности
+    if candidate.get('desired_position') and vacancy.get('title'):
+        candidate_pos = candidate['desired_position']
+        vacancy_title = vacancy['title']
+        from rapidfuzz import fuzz
+        position_score = fuzz.token_sort_ratio(candidate_pos, vacancy_title) / 100
+        detailed_scores['position_score'] = position_score
+        if position_score > 0.8:
+            comments['position_comment'] = "Должности полностью совпадают"
+        elif position_score > 0.6:
+            comments['position_comment'] = "Должности частично совпадают"
+        else:
+            comments['position_comment'] = "Должности не совпадают"
+    else:
+        detailed_scores['position_score'] = 0
+        comments['position_comment'] = "Нет данных о должности"
+
+    # Сравнение зарплаты
+    if candidate.get('desired_salary') and vacancy.get('salary_min') and vacancy.get('salary_max'):
+        try:
+            candidate_salary = float(candidate['desired_salary'])
+            vacancy_min = float(vacancy['salary_min'])
+            vacancy_max = float(vacancy['salary_max'])
+            if vacancy_min <= candidate_salary <= vacancy_max:
+                detailed_scores['salary_score'] = 1.0
+                comments['salary_comment'] = f"Ожидания по зарплате ({candidate_salary}) входят в диапазон вакансии ({vacancy_min}-{vacancy_max})"
+            else:
+                if candidate_salary < vacancy_min:
+                    salary_score = max(0, 1 - (vacancy_min - candidate_salary) / max(vacancy_min, 1))
+                    comments['salary_comment'] = f"Ожидания по зарплате ({candidate_salary}) ниже минимальных ({vacancy_min})"
+                else:
+                    salary_score = max(0, 1 - (candidate_salary - vacancy_max) / max(candidate_salary, 1))
+                    comments['salary_comment'] = f"Ожидания по зарплате ({candidate_salary}) выше максимальных ({vacancy_max})"
+                detailed_scores['salary_score'] = salary_score
+        except Exception:
+            detailed_scores['salary_score'] = 0
+            comments['salary_comment'] = "Ошибка при сравнении зарплаты"
+    else:
+        detailed_scores['salary_score'] = 0
+        comments['salary_comment'] = "Нет данных о зарплате"
+
+    # Сравнение образования
+    if candidate.get('education_level') and vacancy.get('requirements'):
+        education_score = 0.5  # Базовый скор
+        if candidate.get('education_level') in ['bachelor', 'master', 'phd', 'бакалавр', 'магистр', 'кандидат наук']:
+            education_score = 0.8
+        detailed_scores['education_score'] = education_score
+        comments['education_comment'] = f"Уровень образования: {candidate.get('education_level', 'не указан')}"
+    else:
+        detailed_scores['education_score'] = 0
+        comments['education_comment'] = "Нет данных об образовании"
+
+    # Сравнение местоположения
+    if candidate.get('location') and vacancy.get('location'):
+        from rapidfuzz import fuzz
+        location_score = fuzz.token_sort_ratio(candidate['location'], vacancy['location']) / 100
+        detailed_scores['location_score'] = location_score
+        if location_score > 0.8:
+            comments['location_comment'] = "Местоположения совпадают"
+        elif candidate.get('relocation'):
+            comments['location_comment'] = "Кандидат готов к переезду"
+        else:
+            comments['location_comment'] = "Местоположения не совпадают, переезд не рассматривается"
+    else:
+        detailed_scores['location_score'] = 0
+        comments['location_comment'] = "Нет данных о местоположении"
+
+    # Итоговый скор — среднее по всем полям
+    if detailed_scores:
+        overall_score = sum(detailed_scores.values()) / len(detailed_scores)
+    else:
+        overall_score = 0.5
+
+    # Формируем общую оценку
+    if overall_score > 0.8:
+        overall_assessment = "Отличное соответствие кандидата требованиям вакансии"
+    elif overall_score > 0.6:
+        overall_assessment = "Хорошее соответствие кандидата требованиям вакансии"
+    elif overall_score > 0.4:
+        overall_assessment = "Удовлетворительное соответствие кандидата требованиям вакансии"
+    else:
+        overall_assessment = "Слабое соответствие кандидата требованиям вакансии"
+
+    # Генерируем вопросы для собеседования
+    interview_questions = []
+    if detailed_scores.get('skills_score', 0) < 0.7:
+        interview_questions.append("Расскажите о вашем опыте работы с технологиями, которые требуются в вакансии")
+    if detailed_scores.get('experience_score', 0) < 0.6:
+        interview_questions.append("Опишите ваш опыт работы в аналогичных проектах")
+    if detailed_scores.get('salary_score', 0) < 0.8:
+        interview_questions.append("Обсудите ваши ожидания по зарплате и возможности компромисса")
+    if detailed_scores.get('location_score', 0) < 0.5:
+        interview_questions.append("Обсудите возможность переезда или удаленной работы")
+
+    # Сохраняем детальный результат в БД
+    detailed_result = {
+        'skills_score': detailed_scores.get('skills_score', 0),
+        'skills_comment': comments.get('skills_comment', ''),
+        'experience_score': detailed_scores.get('experience_score', 0),
+        'experience_comment': comments.get('experience_comment', ''),
+        'position_score': detailed_scores.get('position_score', 0),
+        'position_comment': comments.get('position_comment', ''),
+        'salary_score': detailed_scores.get('salary_score', 0),
+        'salary_comment': comments.get('salary_comment', ''),
+        'education_score': detailed_scores.get('education_score', 0),
+        'education_comment': comments.get('education_comment', ''),
+        'location_score': detailed_scores.get('location_score', 0),
+        'location_comment': comments.get('location_comment', '')
+    }
+    db.add_matching_result(
+        candidate['id'],
+        vacancy['id'],
+        overall_score,
+        detailed_result,
+        overall_assessment,
+        interview_questions
+    )
+    return overall_score
 
 
 app = Flask(__name__)
@@ -231,45 +351,27 @@ def compare_numeric(val1, val2):
 
 
 def get_ranked_candidates(vacancy_id, status_filter=None, min_score=0.0):
-    """Получение ранжированных кандидатов для вакансии"""
     candidates = db.get_all_candidates()
     vacancy = db.get_vacancy_by_id(vacancy_id)
-
     if not vacancy:
         return []
-
     ranked_candidates = []
-
     for candidate in candidates:
-        # Фильтр по статусу
         if status_filter and candidate.get('status') != status_filter:
             continue
-
-        # Проверяем, есть ли уже результат матчинга в БД
         existing_result = db.get_detailed_matching_result(candidate['id'], vacancy['id'])
-
         if existing_result:
-            # Используем существующий результат
-            score = existing_result['final_score'] / 100.0  # Конвертируем в 0-1 диапазон
-            print(f"Используем кэшированный результат для кандидата {candidate['id']}")
+            score = existing_result['final_score'] / 100.0
         else:
-            # Рассчитываем новый скор
-            score = calculate_matching_score(candidate, vacancy)
-            print(f"Рассчитан новый скор для кандидата {candidate['id']}")
-
-        # Фильтр по минимальному скору
-        if score < min_score:
+            score = None  # Никогда не вызываем calculate_matching_score (GPT)
+        if score is not None and score < min_score:
             continue
-
         ranked_candidates.append({
             **candidate,
             'matching_score': score,
-            'score_percentage': round(score * 100, 1)
+            'score_percentage': round(score * 100, 1) if score is not None else None
         })
-
-    # Сортировка по скору (убывание)
-    ranked_candidates.sort(key=lambda x: x['matching_score'], reverse=True)
-
+    ranked_candidates.sort(key=lambda x: (x['matching_score'] is not None, x['matching_score']), reverse=True)
     return ranked_candidates
 
 
@@ -307,7 +409,6 @@ def vacancy_detail(vacancy_id):
         matching_results = db.get_matching_results(vacancy_id=vacancy_id)
         for result in matching_results:
             db.delete_matching_result(result['cv_id'], vacancy_id)
-        print(f"Удалены все результаты матчинга для вакансии {vacancy_id}")
 
     # Получаем ранжированных кандидатов
     status_filter = request.args.get('status')
@@ -354,122 +455,65 @@ def vacancy_candidates(vacancy_id):
 def new_vacancy():
     """Создание новой вакансии"""
     if request.method == 'POST':
-        # Генерируем уникальный ID для вакансии
         vacancy_id = str(uuid.uuid4())
-
-        # Обработка загрузки файла
         vacancy_file = request.files.get('vacancy_file')
         vacancy_file_path = None
-
         if vacancy_file and allowed_file(vacancy_file.filename):
-            # Получаем расширение файла
             file_extension = os.path.splitext(vacancy_file.filename)[1]
-            # Создаем имя файла с ID
             filename = f"{vacancy_id}{file_extension}"
-            # Создаем подпапку для вакансий
             vacancy_upload_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'vacancies')
             os.makedirs(vacancy_upload_folder, exist_ok=True)
             vacancy_file_path = os.path.join('vacancies', filename).replace('\\', '/')
             full_path = os.path.join(app.config['UPLOAD_FOLDER'], vacancy_file_path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
             vacancy_file.save(full_path)
-
-        # Фоновая обработка PDF и создание JSON для вакансии
-        def background_ocr_and_gpt_vacancy(pdf_path, txt_path, json_path):
-            try:
-                ocr_pdf(pdf_path, txt_path)
-                print(f"PDF вакансии обработан и сохранен в {txt_path}")
-                process_resume_with_gpt(txt_path, json_path, is_vacancy=True)
-            except Exception as e:
-                print(f"Ошибка при обработке PDF вакансии: {e}")
-
+        structured_requirements = None
         if vacancy_file_path and vacancy_file_path.endswith('.pdf'):
             pdf_full_path = os.path.join(app.config['UPLOAD_FOLDER'], vacancy_file_path)
-            # Используем ID для именования TXT и JSON файлов
             txt_filename = f"{vacancy_id}.txt"
             json_filename = f"{vacancy_id}.json"
             txt_output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'vacancies', txt_filename)
             json_output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'vacancies', json_filename)
-            # Создаем папку если не существует
             os.makedirs(os.path.dirname(txt_output_path), exist_ok=True)
-            threading.Thread(target=background_ocr_and_gpt_vacancy,
-                             args=(pdf_full_path, txt_output_path, json_output_path), daemon=True).start()
-
-        requirements_raw = request.form.get('requirements', '').strip()
-        requirements = [r for r in requirements_raw.split('\n') if r.strip()] if requirements_raw else []
-
-        vacancy = {
-            'id': vacancy_id,
+            try:
+                ocr_pdf(pdf_full_path, txt_output_path)
+                process_resume_with_gpt(txt_output_path, json_output_path, is_vacancy=True)
+                if os.path.exists(json_output_path):
+                    with open(json_output_path, 'r', encoding='utf-8') as f:
+                        structured_requirements = json.load(f)
+            except Exception as e:
+                print(f"Ошибка при обработке PDF вакансии: {e}")
+        # Если structured_requirements не получен — не добавлять вакансию
+        if not structured_requirements:
+            flash('Не удалось получить структурированные данные вакансии. Проверьте корректность файла или попробуйте позже.', 'error')
+            return redirect(url_for('new_vacancy'))
+        personal_info = structured_requirements.get('personal_info', {})
+        job_preferences = structured_requirements.get('job_preferences', {})
+        education = structured_requirements.get('education', {})
+        work_experience = structured_requirements.get('work_experience', {})
+        vacancy_data = {
             'title': request.form.get('title', '').strip(),
             'company': request.form.get('company', '').strip(),
-            'location': request.form.get('location', '').strip(),
+            'description': request.form.get('description', '').strip(),
             'salary_min': request.form.get('salary_min', '').strip(),
             'salary_max': request.form.get('salary_max', '').strip(),
-            'description': request.form.get('description', '').strip(),
-            'requirements': requirements,
             'vacancy_file_path': vacancy_file_path,
-            'status': 'active',
-            'created_at': datetime.now().isoformat(),
-            'candidates_count': 0
+            'age': personal_info.get('age', ''),
+            'location': personal_info.get('location', ''),
+            'relocation': personal_info.get('relocation', ''),
+            'desired_position': job_preferences.get('desired_position', ''),
+            'employment_type': job_preferences.get('employment_type', ''),
+            'desired_salary': job_preferences.get('desired_salary', 0),
+            'education_level': education.get('level', ''),
+            'education_specialization': education.get('specialization', ''),
+            'work_experience': work_experience,
+            'skills': ', '.join(structured_requirements.get('skills', [])),
+            'skills_technologies': ', '.join(structured_requirements.get('skills_technologes', [])),
+            'languages': structured_requirements.get('languages', [])
         }
-
-        # Обрабатываем PDF файл через OCR, если он загружен
-        structured_requirements = None
-        # (Удалено: синхронная обработка PDF и GPT для вакансии)
-
-        # Создаем вакансию в базе данных
-        vacancy_data = {
-            'title': vacancy['title'],
-            'company': vacancy['company'],
-            'description': vacancy['description'],
-            'salary_min': vacancy['salary_min'],
-            'salary_max': vacancy['salary_max'],
-            'vacancy_file_path': vacancy['vacancy_file_path']
-        }
-
-        # Добавляем структурированные данные из PDF
-        if structured_requirements:
-            personal_info = structured_requirements.get('personal_info', {})
-            job_preferences = structured_requirements.get('job_preferences', {})
-            education = structured_requirements.get('education', {})
-            work_experience = structured_requirements.get('work_experience', {})
-
-            vacancy_data.update({
-                'age': personal_info.get('age', ''),
-                'location': personal_info.get('location', ''),
-                'relocation': personal_info.get('relocation', ''),
-                'desired_position': job_preferences.get('desired_position', ''),
-                'employment_type': job_preferences.get('employment_type', ''),
-                'desired_salary': job_preferences.get('desired_salary', 0),
-                'education_level': education.get('level', ''),
-                'education_specialization': education.get('specialization', ''),
-                'work_experience': work_experience,
-                'skills': ', '.join(structured_requirements.get('skills', [])),
-                'skills_technologies': ', '.join(structured_requirements.get('skills_technologes', [])),
-                'languages': structured_requirements.get('languages', [])
-            })
-        else:
-            # Используем данные из формы
-            vacancy_data.update({
-                'age': '',
-                'location': vacancy['location'],
-                'relocation': '',
-                'desired_position': '',
-                'employment_type': '',
-                'desired_salary': 0,
-                'education_level': '',
-                'education_specialization': '',
-                'work_experience': '',
-                'skills': ', '.join(vacancy['requirements']),
-                'skills_technologies': '',
-                'languages': []
-            })
-
         db.create_vacancy(vacancy_data)
-
-        flash('Обработка файла запущена. Результат появится через несколько минут.', 'info')
-        return redirect(url_for('index'))  # Перенаправляем на главную страницу
-
+        flash('Вакансия успешно добавлена!', 'success')
+        return redirect(url_for('index'))
     return render_template('new_vacancy.html')
 
 
@@ -477,6 +521,17 @@ def new_vacancy():
 def candidates():
     """Список кандидатов"""
     candidates_list = db.get_all_candidates()
+    # Для каждого кандидата подгружаем скор из on_jobs_cvs (если есть вакансия)
+    for candidate in candidates_list:
+        vacancy_id = candidate.get('job_id') or candidate.get('vacancy_id')
+        if vacancy_id:
+            result = db.get_detailed_matching_result(candidate['id'], vacancy_id)
+            if result and 'final_score' in result:
+                candidate['matching_score'] = result['final_score'] / 100.0
+            else:
+                candidate['matching_score'] = None
+        else:
+            candidate['matching_score'] = None
     return render_template('candidates.html', candidates=candidates_list)
 
 
@@ -516,7 +571,6 @@ def new_candidate():
             os.makedirs(os.path.dirname(txt_output_path), exist_ok=True)
             try:
                 ocr_pdf(pdf_full_path, txt_output_path)
-                print(f"PDF резюме обработан и сохранен в {txt_output_path}")
 
                 # Обрабатываем текст через GPT для извлечения структурированных данных
                 process_resume_with_gpt(txt_output_path, json_output_path, is_vacancy=False)
@@ -525,7 +579,6 @@ def new_candidate():
                 if os.path.exists(json_output_path):
                     with open(json_output_path, 'r', encoding='utf-8') as f:
                         structured_resume_data = json.load(f)
-                        print(f"Структурированные данные резюме извлечены: {structured_resume_data}")
             except Exception as e:
                 print(f"Ошибка при обработке PDF резюме: {e}")
 
@@ -533,7 +586,6 @@ def new_candidate():
         def background_ocr_and_gpt(pdf_path, txt_path, json_path):
             try:
                 ocr_pdf(pdf_path, txt_path)
-                print(f"PDF обработан и сохранен в {txt_path}")
                 process_resume_with_gpt(txt_path, json_path, is_vacancy=False)
             except Exception as e:
                 print(f"Ошибка при обработке PDF: {e}")
@@ -625,8 +677,23 @@ def new_candidate():
             }
 
         # Создаем кандидата в базе данных
-        db.create_candidate(candidate_data)
-
+        new_candidate_id = db.create_candidate(candidate_data)
+        # Если указан vacancy_id — сразу рассчитываем скор и заполняем on_jobs_cvs
+        vacancy_id = candidate_data.get('job_id')
+        if vacancy_id:
+            candidate_obj = db.get_candidate_by_id(new_candidate_id)
+            vacancy_obj = db.get_vacancy_by_id(vacancy_id)
+            if candidate_obj and vacancy_obj:
+                # Получаем score и подробные данные
+                score, detailed_scores, overall_assessment, interview_questions = calculate_matching_score(candidate_obj, vacancy_obj, return_details=True)
+                db.add_matching_result(
+                    candidate_obj['id'],
+                    vacancy_obj['id'],
+                    score,
+                    detailed_scores,
+                    overall_assessment,
+                    interview_questions
+                )
         flash('Обработка файла запущена. Результат появится через несколько минут.', 'info')
         return redirect(url_for('index'))  # Перенаправляем на главную страницу
 
@@ -711,20 +778,14 @@ def edit_candidate(candidate_id):
 
 @app.route('/candidates/<int:candidate_id>')
 def candidate_detail(candidate_id):
-    """Детальная информация о кандидате"""
     candidate = db.get_candidate_by_id(candidate_id)
-
-    if not candidate:
-        flash('Кандидат не найден', 'error')
-        return redirect(url_for('candidates'))
-
-    # Если есть вакансия, сравниваем
     matching_score = None
-    if candidate.get('vacancy_id'):
-        vacancy = db.get_vacancy_by_id(candidate['vacancy_id'])
-        if vacancy:
-            matching_score = calculate_matching_score(candidate, vacancy)
-
+    if candidate:
+        vacancy_id = candidate.get('job_id') or candidate.get('vacancy_id')
+        if vacancy_id:
+            result = db.get_detailed_matching_result(candidate['id'], vacancy_id)
+            if result and 'final_score' in result:
+                matching_score = result['final_score'] / 100.0
     return render_template('candidate_detail.html', candidate=candidate, matching_score=matching_score)
 
 
@@ -743,7 +804,6 @@ def api_match(candidate_id, vacancy_id):
     if force_recalculate:
         # Удаляем существующий результат и пересчитываем
         db.delete_matching_result(candidate_id, vacancy_id)
-        print(f"Принудительный пересчет скора для кандидата {candidate_id} и вакансии {vacancy_id}")
 
     score = calculate_matching_score(candidate, vacancy)
 
@@ -783,13 +843,8 @@ def detailed_matching(candidate_id, vacancy_id):
         flash('Кандидат или вакансия не найдены', 'error')
         return redirect(url_for('index'))
 
-    # Получаем или создаем детальный результат матчинга
+    # Получаем детальный результат матчинга только из БД
     detailed_result = db.get_detailed_matching_result(candidate_id, vacancy_id)
-
-    if not detailed_result:
-        # Если результат еще не существует, создаем его
-        calculate_matching_score(candidate, vacancy)
-        detailed_result = db.get_detailed_matching_result(candidate_id, vacancy_id)
 
     return render_template('detailed_matching.html',
                            candidate=candidate,
@@ -849,30 +904,22 @@ def edit_vacancy(vacancy_id):
 
 @app.route('/vacancies/<int:vacancy_id>/file')
 def download_vacancy_file(vacancy_id):
-    """Скачивание файла вакансии"""
     vacancy = db.get_vacancy_by_id(vacancy_id)
-
     if not vacancy or not vacancy.get('vacancy_file_path'):
         flash('Файл вакансии не найден', 'error')
         return redirect(url_for('vacancies'))
-
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], vacancy['vacancy_file_path'])
-
     if not os.path.exists(file_path):
         flash('Файл не найден на сервере', 'error')
         return redirect(url_for('vacancies'))
-
-    # Если это PDF, обрабатываем его через OCR и сохраняем txt в папку vacancies
     if file_path.endswith('.pdf'):
         filename = os.path.basename(file_path).replace('.pdf', '.txt')
         txt_output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'vacancies', filename)
         os.makedirs(os.path.dirname(txt_output_path), exist_ok=True)
         try:
             ocr_pdf(file_path, txt_output_path)
-            print(f"PDF обработан при скачивании и сохранен в {txt_output_path}")
-        except Exception as e:
-            print(f"Ошибка при обработке PDF при скачивании: {e}")
-
+        except Exception:
+            pass
     return send_file(file_path, as_attachment=True)
 
 
@@ -898,50 +945,34 @@ def download_candidate_resume(candidate_id):
 
 @app.route('/vacancies/<int:vacancy_id>/delete', methods=['DELETE'])
 def delete_vacancy(vacancy_id):
-    """Удаление вакансии"""
     vacancy = db.get_vacancy_by_id(vacancy_id)
-
     if not vacancy:
         return jsonify({'error': 'Вакансия не найдена'}), 404
-
-    # Удаляем связанные файлы
-    if vacancy.get('vacancy_file_path'):
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], vacancy['vacancy_file_path'])
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                print(f"Ошибка при удалении файла вакансии: {e}")
-
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], vacancy['vacancy_file_path'])
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
     # Удаляем из базы данных
-    if db.delete_vacancy(vacancy_id):
-        return jsonify({'message': 'Вакансия успешно удалена'}), 200
-    else:
-        return jsonify({'error': 'Ошибка при удалении вакансии'}), 500
+    db.delete_vacancy(vacancy_id)
+    return jsonify({'success': True})
 
 
 @app.route('/candidates/<int:candidate_id>/delete', methods=['DELETE'])
 def delete_candidate(candidate_id):
-    """Удаление кандидата"""
     candidate = db.get_candidate_by_id(candidate_id)
-
     if not candidate:
         return jsonify({'error': 'Кандидат не найден'}), 404
-
-    # Удаляем связанные файлы
-    if candidate.get('resume_path'):
-        file_path = candidate['resume_path']
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                print(f"Ошибка при удалении файла резюме: {e}")
-
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], candidate.get('resume_path', ''))
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
     # Удаляем из базы данных
-    if db.delete_candidate(candidate_id):
-        return jsonify({'message': 'Кандидат успешно удален'}), 200
-    else:
-        return jsonify({'error': 'Ошибка при удалении кандидата'}), 500
+    db.delete_candidate(candidate_id)
+    return jsonify({'success': True})
 
 
 if __name__ == '__main__':
