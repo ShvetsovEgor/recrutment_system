@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование кандидата - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Редактирование кандидата</h1>
+        <p class="text-muted">Обновите информацию о кандидате</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация о кандидате</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ candidate.name }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ candidate.email }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="{{ candidate.phone }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="age_range" class="form-label">Возрастная группа</label>
+                            <select class="form-select" id="age_range" name="age_range">
+                                <option value="">Выберите возраст</option>
+                                <option value="18-25" {% if candidate.age_range == '18-25' %}selected{% endif %}>18-25 лет</option>
+                                <option value="26-35" {% if candidate.age_range == '26-35' %}selected{% endif %}>26-35 лет</option>
+                                <option value="36-45" {% if candidate.age_range == '36-45' %}selected{% endif %}>36-45 лет</option>
+                                <option value="46-55" {% if candidate.age_range == '46-55' %}selected{% endif %}>46-55 лет</option>
+                                <option value="55+" {% if candidate.age_range == '55+' %}selected{% endif %}>55+ лет</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">Местоположение</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ candidate.location }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="relocation" class="form-label">Готовность к переезду</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="relocation" name="relocation" 
+                                       {% if candidate.relocation %}checked{% endif %}>
+                                <label class="form-check-label" for="relocation">
+                                    Готов к переезду
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="desired_position" class="form-label">Желаемая должность</label>
+                            <input type="text" class="form-control" id="desired_position" name="desired_position" 
+                                   value="{{ candidate.desired_position }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="employment_type" class="form-label">Тип занятости</label>
+                            <select class="form-select" id="employment_type" name="employment_type">
+                                <option value="">Выберите тип</option>
+                                <option value="full_time" {% if candidate.employment_type == 'full_time' %}selected{% endif %}>Полная занятость</option>
+                                <option value="part_time" {% if candidate.employment_type == 'part_time' %}selected{% endif %}>Частичная занятость</option>
+                                <option value="contract" {% if candidate.employment_type == 'contract' %}selected{% endif %}>Контракт</option>
+                                <option value="freelance" {% if candidate.employment_type == 'freelance' %}selected{% endif %}>Фриланс</option>
+                                <option value="internship" {% if candidate.employment_type == 'internship' %}selected{% endif %}>Стажировка</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="desired_salary" class="form-label">Ожидаемая зарплата (руб.)</label>
+                            <input type="number" class="form-control" id="desired_salary" name="desired_salary" 
+                                   value="{{ candidate.desired_salary }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Статус</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="new" {% if candidate.status == 'new' %}selected{% endif %}>Новый</option>
+                                <option value="reviewed" {% if candidate.status == 'reviewed' %}selected{% endif %}>Рассмотрен</option>
+                                <option value="interviewed" {% if candidate.status == 'interviewed' %}selected{% endif %}>Собеседование</option>
+                                <option value="hired" {% if candidate.status == 'hired' %}selected{% endif %}>Принят</option>
+                                <option value="rejected" {% if candidate.status == 'rejected' %}selected{% endif %}>Отклонен</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="work_experience" class="form-label">Опыт работы</label>
+                        <textarea class="form-control" id="work_experience" name="work_experience" rows="3">{{ candidate.work_experience }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="education_level" class="form-label">Уровень образования</label>
+                            <select class="form-select" id="education_level" name="education_level">
+                                <option value="">Выберите уровень</option>
+                                <option value="secondary" {% if candidate.education_level == 'secondary' %}selected{% endif %}>Среднее</option>
+                                <option value="vocational" {% if candidate.education_level == 'vocational' %}selected{% endif %}>Среднее специальное</option>
+                                <option value="bachelor" {% if candidate.education_level == 'bachelor' %}selected{% endif %}>Бакалавриат</option>
+                                <option value="master" {% if candidate.education_level == 'master' %}selected{% endif %}>Магистратура</option>
+                                <option value="phd" {% if candidate.education_level == 'phd' %}selected{% endif %}>Аспирантура</option>
+                                <option value="other" {% if candidate.education_level == 'other' %}selected{% endif %}>Другое</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="education_specialization" class="form-label">Специализация</label>
+                            <input type="text" class="form-control" id="education_specialization" name="education_specialization" 
+                                   value="{{ candidate.education_specialization }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="skills" class="form-label">Навыки (по одному на строку)</label>
+                        <textarea class="form-control" id="skills" name="skills" rows="3">{{ candidate.skills|join('\n') if candidate.skills else '' }}</textarea>
+                        <div class="form-text">Введите каждый навык с новой строки</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Языки</label>
+                        <div id="languages-container">
+                            {% if candidate.languages %}
+                                {% for language in candidate.languages %}
+                                <div class="row mb-2 language-row">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="language_names[]" 
+                                               value="{{ language.name }}" placeholder="Название языка">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <select class="form-select" name="language_levels[]">
+                                            <option value="basic" {% if language.level == 'basic' %}selected{% endif %}>Базовый</option>
+                                            <option value="intermediate" {% if language.level == 'intermediate' %}selected{% endif %}>Средний</option>
+                                            <option value="advanced" {% if language.level == 'advanced' %}selected{% endif %}>Продвинутый</option>
+                                            <option value="native" {% if language.level == 'native' %}selected{% endif %}>Родной</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-language">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="row mb-2 language-row">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="language_names[]" placeholder="Название языка">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <select class="form-select" name="language_levels[]">
+                                            <option value="basic">Базовый</option>
+                                            <option value="intermediate">Средний</option>
+                                            <option value="advanced">Продвинутый</option>
+                                            <option value="native">Родной</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-language">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="add-language">
+                            <i class="fas fa-plus me-1"></i>Добавить язык
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="resume" class="form-label">Резюме</label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx">
+                        {% if candidate.resume_path %}
+                        <div class="form-text">
+                            <i class="fas fa-file-alt me-1"></i>
+                            Текущий файл: {{ candidate.resume_path.split('/')[-1] }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="vacancy_id" class="form-label">Вакансия</label>
+                        <select class="form-select" id="vacancy_id" name="vacancy_id">
+                            <option value="">Выберите вакансию</option>
+                            {% for vacancy in vacancies %}
+                            <option value="{{ vacancy.id }}" {% if candidate.vacancy_id == vacancy.id %}selected{% endif %}>
+                                {{ vacancy.title }} - {{ vacancy.company }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                        </button>
+                        <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i>Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Информация</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">Создан</small>
+                        <p class="mb-0">{{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}</p>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">ID</small>
+                        <p class="mb-0 text-muted">{{ candidate.id|string }}...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('add-language').addEventListener('click', function() {
+    const container = document.getElementById('languages-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'row mb-2 language-row';
+    newRow.innerHTML = `
+        <div class="col-md-6">
+            <input type="text" class="form-control" name="language_names[]" placeholder="Название языка">
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" name="language_levels[]">
+                <option value="basic">Базовый</option>
+                <option value="intermediate">Средний</option>
+                <option value="advanced">Продвинутый</option>
+                <option value="native">Родной</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-language">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newRow);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-language')) {
+        e.target.closest('.language-row').remove();
+    }
+});
+</script>
+{% endblock %} 

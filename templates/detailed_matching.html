@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Детальный матчинг - Huntflow MVP{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Детальный анализ соответствия</h1>
+        <p class="text-muted">Кандидат: {{ candidate.name }} | Вакансия: {{ vacancy.title }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Общая оценка -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Общая оценка
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="text-primary">{{ "%.1f"|format(matching.final_score or 0) }}%</h4>
+                        <p class="text-muted mb-0">Общий скор соответствия</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ matching.final_score or 0 }}%"
+                                 aria-valuenow="{{ matching.final_score or 0 }}" 
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ "%.1f"|format(matching.final_score or 0) }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if matching.overall_assessment %}
+                <div class="mt-3">
+                    <h6>Общая оценка:</h6>
+                    <p class="mb-0">{{ matching.overall_assessment }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Таблица критериев -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list-check me-2"></i>Детальная оценка по критериям
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Критерий</th>
+                            <th>Оценка (%)</th>
+                            <th>Комментарий / Вопросы</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Навыки</td>
+                            <td>{{ matching.skills or 0 }}</td>
+                            <td>{{ matching.skills_comment or '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Опыт работы</td>
+                            <td>{{ matching.work_exp or 0 }}</td>
+                            <td>{{ matching.experience_comment or '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Возраст</td>
+                            <td>{{ matching.age or 0 }}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Образование</td>
+                            <td>{{ matching.education or 0 }}</td>
+                            <td>{{ matching.education_comment or '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Локация</td>
+                            <td>{{ matching.location or 0 }}</td>
+                            <td>{{ matching.location_comment or '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>Технологии</td>
+                            <td>{{ matching.skills_tech or 0 }}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Языки</td>
+                            <td>{{ matching.languages or 0 }}</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Информация о кандидате -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i>Кандидат
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6>{{ candidate.name }}</h6>
+                {% if candidate.email %}
+                <p class="mb-1"><small class="text-muted">Email: {{ candidate.email }}</small></p>
+                {% endif %}
+                {% if candidate.phone %}
+                <p class="mb-1"><small class="text-muted">Телефон: {{ candidate.phone }}</small></p>
+                {% endif %}
+                {% if candidate.desired_position %}
+                <p class="mb-1"><small class="text-muted">Желаемая должность: {{ candidate.desired_position }}</small></p>
+                {% endif %}
+                {% if candidate.location %}
+                <p class="mb-1"><small class="text-muted">Местоположение: {{ candidate.location }}</small></p>
+                {% endif %}
+                {% if candidate.desired_salary %}
+                <p class="mb-1"><small class="text-muted">Ожидаемая зарплата: {{ candidate.desired_salary }} руб.</small></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
