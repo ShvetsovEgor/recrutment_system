@@ -106,7 +106,7 @@
             </div>
             <div class="card-body text-center">
                 <div class="matching-score {% if matching_score >= 0.8 %}score-high{% elif matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
-                    {{ "%.0f"|format(matching_score * 100) }}%
+                    {{ "%.0f"|format(matching_score if matching_score > 1 else matching_score * 100) }}%
                 </div>
                 <p class="text-muted mb-0">
                     {% if matching_score >= 0.8 %}

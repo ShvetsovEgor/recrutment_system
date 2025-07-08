@@ -67,7 +67,7 @@
     <div class="col-md-3 mb-3">
         <div class="card text-center">
             <div class="card-body">
-                <h4 class="text-success mb-0">{{ candidates|selectattr('matching_score', '>=', 0.8)|list|length }}</h4>
+                <h4 class="text-success mb-0">{{ candidates|rejectattr('matching_score', 'equalto', None)|selectattr('matching_score', '>=', 0.8)|list|length }}</h4>
                 <small class="text-muted">Отличное соответствие (80%+)</small>
             </div>
         </div>
@@ -75,7 +75,7 @@
     <div class="col-md-3 mb-3">
         <div class="card text-center">
             <div class="card-body">
-                <h4 class="text-warning mb-0">{{ candidates|selectattr('matching_score', '>=', 0.6)|selectattr('matching_score', '<', 0.8)|list|length }}</h4>
+                <h4 class="text-warning mb-0">{{ candidates|rejectattr('matching_score', 'equalto', None)|selectattr('matching_score', '>=', 0.6)|selectattr('matching_score', '<', 0.8)|list|length }}</h4>
                 <small class="text-muted">Хорошее соответствие (60-80%)</small>
             </div>
         </div>
@@ -83,7 +83,7 @@
     <div class="col-md-3 mb-3">
         <div class="card text-center">
             <div class="card-body">
-                <h4 class="text-danger mb-0">{{ candidates|selectattr('matching_score', '<', 0.6)|list|length }}</h4>
+                <h4 class="text-danger mb-0">{{ candidates|rejectattr('matching_score', 'equalto', None)|selectattr('matching_score', '<', 0.6)|list|length }}</h4>
                 <small class="text-muted">Низкое соответствие (<60%)</small>
             </div>
         </div>
@@ -103,8 +103,8 @@
                         <p class="text-muted mb-0">{{ candidate.position }}</p>
                     </div>
                     <div class="text-end">
-                        <div class="matching-score {% if candidate.matching_score >= 0.8 %}score-high{% elif candidate.matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
-                            {{ candidate.score_percentage }}%
+                        <div class="matching-score {% if candidate.matching_score is not none and candidate.matching_score >= 0.8 %}score-high{% elif candidate.matching_score is not none and candidate.matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
+                            {{ candidate.score_percentage if candidate.score_percentage is not none else '—' }}%
                         </div>
                         <small class="text-muted">соответствие</small>
                     </div>
