@@ -7,6 +7,9 @@
     <div class="col-12">
         <h1 class="h3 mb-0">Новая вакансия</h1>
         <p class="text-muted">Создание новой вакансии</p>
+        <div class="alert alert-info mt-2">
+            Вы можете заполнить поля вручную <b>или</b> просто загрузить PDF/DOC/DOCX/TXT файл с описанием вакансии.
+        </div>
     </div>
 </div>
 
@@ -14,23 +17,23 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="title" class="form-label">Название должности *</label>
-                            <input type="text" class="form-control" id="title" name="title" required>
+                            <label for="title" class="form-label">Название должности</label>
+                            <input type="text" class="form-control" id="title" name="title">
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label for="company" class="form-label">Компания *</label>
-                            <input type="text" class="form-control" id="company" name="company" required>
+                            <label for="company" class="form-label">Компания</label>
+                            <input type="text" class="form-control" id="company" name="company">
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="location" class="form-label">Локация *</label>
-                            <input type="text" class="form-control" id="location" name="location" placeholder="Москва, Санкт-Петербург..." required>
+                            <label for="location" class="form-label">Локация</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Москва, Санкт-Петербург...">
                         </div>
                         
                         <div class="col-md-3 mb-3">
@@ -45,17 +48,23 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">Описание вакансии *</label>
-                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Подробное описание должности, обязанностей, условий работы..." required></textarea>
+                        <label for="description" class="form-label">Описание вакансии</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" placeholder="Подробное описание должности, обязанностей, условий работы..."></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="requirements" class="form-label">Требования *</label>
+                        <label for="requirements" class="form-label">Требования</label>
                         <textarea class="form-control" id="requirements" name="requirements" rows="4" placeholder="Введите требования, каждое с новой строки:
 • Опыт работы от 2 лет
 • Знание Python
-• Умение работать в команде" required></textarea>
+• Умение работать в команде"></textarea>
                         <div class="form-text">Введите каждое требование с новой строки</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="vacancy_file" class="form-label">Документ вакансии (PDF)</label>
+                        <input type="file" class="form-control" id="vacancy_file" name="vacancy_file" accept=".pdf,.doc,.docx,.txt">
+                        <div class="form-text">Загрузите PDF, DOC, DOCX или TXT файл с описанием вакансии (можно не заполнять поля выше)</div>
                     </div>
                     
                     <div class="d-flex justify-content-between">
@@ -90,9 +99,13 @@
                         <i class="fas fa-check text-success me-2"></i>
                         Укажите зарплатный диапазон
                     </li>
-                    <li class="mb-0">
+                    <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
                         Добавьте информацию о компании
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Загрузите документ вакансии
                     </li>
                 </ul>
             </div>

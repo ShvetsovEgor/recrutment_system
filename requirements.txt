@@ -1,6 +1,7 @@
-flask
-werkzeug
-rapidfuzz
-sentence-transformers
-torch
-pyngrok
+Flask==2.3.3
+Werkzeug==2.3.7
+rapidfuzz==3.4.0
+langchain-community==0.0.10
+langchain==0.0.350
+yandexcloud==0.227.0
+python-dotenv==1.0.0

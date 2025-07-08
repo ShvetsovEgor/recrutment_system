@@ -66,9 +66,26 @@
                     <small class="text-muted">
                         {{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}
                     </small>
-                    <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-eye me-1"></i>Просмотр
-                    </a>
+                    <div class="btn-group" role="group">
+                        <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" 
+                           class="btn btn-sm btn-outline-primary" title="Просмотр">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" 
+                           class="btn btn-sm btn-outline-warning" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger" title="Удалить"
+                                onclick="confirmDelete('{{ candidate.id }}', '{{ candidate.name }}', 'candidate')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% if candidate.vacancy_id %}
+                        <a href="{{ url_for('detailed_matching', candidate_id=candidate.id, vacancy_id=candidate.vacancy_id) }}" 
+                           class="btn btn-sm btn-outline-info" title="Детальный матчинг">
+                            <i class="fas fa-chart-line"></i>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

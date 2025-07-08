@@ -7,6 +7,9 @@
     <div class="col-12">
         <h1 class="h3 mb-0">Новый кандидат</h1>
         <p class="text-muted">Добавление нового кандидата</p>
+        <div class="alert alert-info mt-2">
+            Вы можете заполнить поля вручную <b>или</b> просто загрузить PDF/DOC/DOCX/TXT файл с резюме кандидата.
+        </div>
     </div>
 </div>
 
@@ -14,65 +17,164 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="candidate-form">
+                    <!-- Personal Information -->
+                    <h5 class="card-title mb-3">Персональная информация</h5>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="name" class="form-label">ФИО *</label>
+                            <label for="name" class="form-label">Имя кандидата *</label>
                             <input type="text" class="form-control" id="name" name="name" required>
                         </div>
-                        
                         <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
                         </div>
                     </div>
-                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="phone" class="form-label">Телефон</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="+7 (999) 123-45-67">
+                            <input type="text" class="form-control" id="phone" name="phone">
                         </div>
-                        
                         <div class="col-md-6 mb-3">
-                            <label for="position" class="form-label">Желаемая должность *</label>
-                            <input type="text" class="form-control" id="position" name="position" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="experience" class="form-label">Опыт работы</label>
-                            <input type="text" class="form-control" id="experience" name="experience" placeholder="2 года, 1-3 года...">
-                        </div>
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="vacancy_id" class="form-label">Вакансия</label>
-                            <select class="form-select" id="vacancy_id" name="vacancy_id">
-                                <option value="">Выберите вакансию (необязательно)</option>
-                                {% for vacancy in vacancies %}
-                                <option value="{{ vacancy.id }}">{{ vacancy.title }} - {{ vacancy.company }}</option>
-                                {% endfor %}
+                            <label for="age_range" class="form-label">Возрастной диапазон</label>
+                            <select class="form-select" id="age_range" name="age_range">
+                                <option value="">Не указано</option>
+                                <option value="18-25">18-25 лет</option>
+                                <option value="25-30">25-30 лет</option>
+                                <option value="30-35">30-35 лет</option>
+                                <option value="35-40">35-40 лет</option>
+                                <option value="40-50">40-50 лет</option>
+                                <option value="50+">50+ лет</option>
                             </select>
                         </div>
                     </div>
-                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label">Местоположение</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Город, страна">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="relocation" class="form-label">Готовность к переезду</label>
+                            <select class="form-select" id="relocation" name="relocation">
+                                <option value="">Не указано</option>
+                                <option value="true">Готов к переезду</option>
+                                <option value="false">Не готов к переезду</option>
+                                <option value="remote">Готов к удаленной работе</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Job Preferences -->
+                    <h5 class="card-title mb-3 mt-4">Предпочтения по работе</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="desired_position" class="form-label">Желаемая должность</label>
+                            <input type="text" class="form-control" id="desired_position" name="desired_position" placeholder="Например: Python Developer">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="employment_type" class="form-label">Тип занятости</label>
+                            <select class="form-select" id="employment_type" name="employment_type">
+                                <option value="">Не указано</option>
+                                <option value="full_time">Полная занятость</option>
+                                <option value="part_time">Частичная занятость</option>
+                                <option value="contract">Контракт</option>
+                                <option value="freelance">Фриланс</option>
+                                <option value="internship">Стажировка</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label for="skills" class="form-label">Навыки *</label>
-                        <textarea class="form-control" id="skills" name="skills" rows="3" placeholder="Введите навыки, каждое с новой строки:
-• Python
-• JavaScript
-• Git
-• Работа в команде" required></textarea>
+                        <label for="desired_salary" class="form-label">Желаемая зарплата (руб.)</label>
+                        <input type="number" class="form-control" id="desired_salary" name="desired_salary" placeholder="Например: 100000">
+                    </div>
+
+                    <!-- Work Experience -->
+                    <h5 class="card-title mb-3 mt-4">Опыт работы</h5>
+                    <div class="mb-3">
+                        <label for="work_experience" class="form-label">Опыт работы</label>
+                        <textarea class="form-control" id="work_experience" name="work_experience" rows="3" placeholder="Опишите опыт работы, проекты, технологии"></textarea>
+                    </div>
+
+                    <!-- Education -->
+                    <h5 class="card-title mb-3 mt-4">Образование</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="education_level" class="form-label">Уровень образования</label>
+                            <select class="form-select" id="education_level" name="education_level">
+                                <option value="">Не указано</option>
+                                <option value="secondary">Среднее образование</option>
+                                <option value="vocational">Среднее специальное</option>
+                                <option value="bachelor">Бакалавриат</option>
+                                <option value="master">Магистратура</option>
+                                <option value="phd">Аспирантура/PhD</option>
+                                <option value="other">Другое</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="education_specialization" class="form-label">Специализация</label>
+                            <input type="text" class="form-control" id="education_specialization" name="education_specialization" placeholder="Например: Информационные технологии">
+                        </div>
+                    </div>
+
+                    <!-- Skills -->
+                    <h5 class="card-title mb-3 mt-4">Навыки и технологии</h5>
+                    <div class="mb-3">
+                        <label for="skills" class="form-label">Навыки и технологии</label>
+                        <textarea class="form-control" id="skills" name="skills" rows="4" placeholder="Введите навыки, каждое с новой строки. Например:&#10;Python&#10;Django&#10;PostgreSQL&#10;Docker"></textarea>
                         <div class="form-text">Введите каждый навык с новой строки</div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="resume" class="form-label">Резюме</label>
-                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx,.txt">
-                        <div class="form-text">Поддерживаемые форматы: PDF, DOC, DOCX, TXT</div>
+
+                    <!-- Languages -->
+                    <h5 class="card-title mb-3 mt-4">Языки</h5>
+                    <div id="languages-container">
+                        <div class="language-item row mb-2">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" name="language_names[]" placeholder="Язык (например: Английский)">
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" name="language_levels[]">
+                                    <option value="">Уровень</option>
+                                    <option value="Родной">Родной</option>
+                                    <option value="C2">C2 - В совершенстве</option>
+                                    <option value="C1">C1 - Продвинутый</option>
+                                    <option value="B2">B2 - Выше среднего</option>
+                                    <option value="B1">B1 - Средний</option>
+                                    <option value="A2">A2 - Ниже среднего</option>
+                                    <option value="A1">A1 - Начальный</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-language" style="display: none;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="add-language">
+                        <i class="fas fa-plus me-1"></i>Добавить язык
+                    </button>
+
+                    <!-- File Upload -->
+                    <h5 class="card-title mb-3 mt-4">Резюме</h5>
+                    <div class="mb-3">
+                        <label for="resume" class="form-label">Резюме (PDF, DOC, DOCX, TXT)</label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx,.txt">
+                        <div class="form-text">Загрузите PDF, DOC, DOCX или TXT файл с резюме кандидата</div>
+                    </div>
+
+                    <!-- Vacancy Selection -->
+                    <h5 class="card-title mb-3 mt-4">Вакансия</h5>
+                    <div class="mb-3">
+                        <label for="vacancy_id" class="form-label">Привязать к вакансии</label>
+                        <select class="form-select" id="vacancy_id" name="vacancy_id">
+                            <option value="">Не выбрано</option>
+                            {% for vacancy in vacancies %}
+                            <option value="{{ vacancy.id }}">{{ vacancy.title }} ({{ vacancy.company }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
                         <a href="{{ url_for('candidates') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-arrow-left me-2"></i>Отмена
                         </a>
@@ -84,44 +186,152 @@
             </div>
         </div>
     </div>
-    
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Советы</h5>
+                <h5 class="card-title mb-0">Советы по заполнению</h5>
             </div>
             <div class="card-body">
                 <ul class="list-unstyled mb-0">
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        Укажите актуальные навыки
+                        Заполните как можно больше информации
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        Загрузите резюме для анализа
+                        Загрузите файл резюме для автоматической обработки
                     </li>
                     <li class="mb-2">
                         <i class="fas fa-check text-success me-2"></i>
-                        Выберите подходящую вакансию
+                        Укажите навыки и технологии
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Добавьте языки, которыми владеет кандидат
                     </li>
                     <li class="mb-0">
                         <i class="fas fa-check text-success me-2"></i>
-                        Укажите корректные контакты
+                        Привяжите к конкретной вакансии для лучшего матчинга
                     </li>
                 </ul>
             </div>
         </div>
-        
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Автоматический анализ</h5>
-            </div>
-            <div class="card-body">
-                <p class="small text-muted mb-0">
-                    После добавления кандидата система автоматически проанализирует резюме и рассчитает соответствие выбранной вакансии.
-                </p>
-            </div>
-        </div>
     </div>
 </div>
+
+<div id="progress-bar-container" style="display:none; margin-top:20px;">
+    <div class="progress">
+        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">0%</div>
+    </div>
+    <div id="progress-bar-text" class="mt-2 text-center text-muted">Загрузка...</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const languagesContainer = document.getElementById('languages-container');
+    const addLanguageBtn = document.getElementById('add-language');
+    
+    // Показываем кнопку удаления для первого языка
+    const firstLanguage = languagesContainer.querySelector('.language-item');
+    if (firstLanguage) {
+        firstLanguage.querySelector('.remove-language').style.display = 'block';
+    }
+    
+    // Добавление нового языка
+    addLanguageBtn.addEventListener('click', function() {
+        const languageItem = document.createElement('div');
+        languageItem.className = 'language-item row mb-2';
+        languageItem.innerHTML = `
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="language_names[]" placeholder="Язык (например: Английский)">
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" name="language_levels[]">
+                    <option value="">Уровень</option>
+                    <option value="Родной">Родной</option>
+                    <option value="C2">C2 - В совершенстве</option>
+                    <option value="C1">C1 - Продвинутый</option>
+                    <option value="B2">B2 - Выше среднего</option>
+                    <option value="B1">B1 - Средний</option>
+                    <option value="A2">A2 - Ниже среднего</option>
+                    <option value="A1">A1 - Начальный</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-language">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        languagesContainer.appendChild(languageItem);
+        
+        // Показываем кнопки удаления для всех языков
+        document.querySelectorAll('.remove-language').forEach(btn => {
+            btn.style.display = 'block';
+        });
+    });
+    
+    // Удаление языка
+    languagesContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-language')) {
+            const languageItem = e.target.closest('.language-item');
+            languageItem.remove();
+            
+            // Скрываем кнопку удаления, если остался только один язык
+            const remainingLanguages = languagesContainer.querySelectorAll('.language-item');
+            if (remainingLanguages.length === 1) {
+                remainingLanguages[0].querySelector('.remove-language').style.display = 'none';
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('candidate-form');
+    const progressBarContainer = document.getElementById('progress-bar-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressBarText = document.getElementById('progress-bar-text');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            progressBarContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.innerText = '0%';
+            progressBarText.innerText = 'Загрузка...';
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', window.location.href, true);
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.innerText = percent + '%';
+                }
+            };
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    progressBar.style.width = '100%';
+                    progressBar.innerText = '100%';
+                    progressBarText.innerText = 'Готово! Перенаправление...';
+                    setTimeout(function() {
+                        window.location.href = '/candidates';
+                    }, 1200);
+                } else {
+                    progressBarText.innerText = 'Ошибка при отправке формы!';
+                }
+            };
+            xhr.onerror = function() {
+                progressBarText.innerText = 'Ошибка соединения!';
+            };
+            xhr.send(formData);
+        });
+    }
+});
+</script>
 {% endblock %} 

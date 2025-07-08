@@ -81,17 +81,29 @@
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Быстрые действия</h5>
+            </div>
             <div class="card-body">
-                <h5 class="card-title">Быстрые действия</h5>
                 <div class="row">
-                    <div class="col-md-6">
-                        <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary w-100 mb-2">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary w-100">
                             <i class="fas fa-plus me-2"></i>Создать вакансию
                         </a>
                     </div>
-                    <div class="col-md-6">
-                        <a href="{{ url_for('new_candidate') }}" class="btn btn-outline-primary w-100 mb-2">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('new_candidate') }}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-user-plus me-2"></i>Добавить кандидата
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('vacancies') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-briefcase me-2"></i>Управление вакансиями
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('candidates') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-user-tie me-2"></i>Управление кандидатами
                         </a>
                     </div>
                 </div>
@@ -111,14 +123,24 @@
             <div class="card-body">
                 {% if recent_vacancies %}
                     {% for vacancy in recent_vacancies %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                        <div class="flex-grow-1">
                             <h6 class="mb-1">{{ vacancy.title }}</h6>
                             <small class="text-muted">{{ vacancy.company }} • {{ vacancy.location }}</small>
                         </div>
-                        <span class="badge bg-success status-badge">
-                            {% if vacancy.status == 'active' %}Активна{% else %}Закрыта{% endif %}
-                        </span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-success status-badge">
+                                {% if vacancy.status == 'active' %}Активна{% else %}Закрыта{% endif %}
+                            </span>
+                            <a href="{{ url_for('vacancy_detail', vacancy_id=vacancy.id) }}" 
+                               class="btn btn-sm btn-outline-primary" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('edit_vacancy', vacancy_id=vacancy.id) }}" 
+                               class="btn btn-sm btn-outline-warning" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </div>
                     </div>
                     {% endfor %}
                 {% else %}
@@ -137,14 +159,24 @@
             <div class="card-body">
                 {% if recent_candidates %}
                     {% for candidate in recent_candidates %}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
+                        <div class="flex-grow-1">
                             <h6 class="mb-1">{{ candidate.name }}</h6>
-                            <small class="text-muted">{{ candidate.position }} • {{ candidate.email }}</small>
+                            <small class="text-muted">{{ candidate.desired_position or candidate.position }} • {{ candidate.email }}</small>
                         </div>
-                        <span class="badge bg-info status-badge">
-                            {% if candidate.status == 'new' %}Новый{% else %}{{ candidate.status }}{% endif %}
-                        </span>
+                        <div class="d-flex gap-1">
+                            <span class="badge bg-info status-badge">
+                                {% if candidate.status == 'new' %}Новый{% else %}{{ candidate.status }}{% endif %}
+                            </span>
+                            <a href="{{ url_for('candidate_detail', candidate_id=candidate.id) }}" 
+                               class="btn btn-sm btn-outline-primary" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" 
+                               class="btn btn-sm btn-outline-warning" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </div>
                     </div>
                     {% endfor %}
                 {% else %}
