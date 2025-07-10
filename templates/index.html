@@ -125,8 +125,11 @@
                     {% for vacancy in recent_vacancies %}
                     <div class="d-flex justify-content-between align-items-center mb-3 p-2 border rounded">
                         <div class="flex-grow-1">
-                            <h6 class="mb-1">{{ vacancy.title }}</h6>
-                            <small class="text-muted">{{ vacancy.company }} • {{ vacancy.location }}</small>
+                            <h6 class="mb-1">{{ vacancy.desired_position|capitalize }}</h6>
+                            <small class="text-muted">
+                                {% if vacancy.desired_salary %}Зарплата: {{ vacancy.desired_salary }} руб. • {% endif %}
+                                {{ vacancy.location }}
+                            </small>
                         </div>
                         <div class="d-flex gap-1">
                             <span class="badge bg-success status-badge">

@@ -57,46 +57,21 @@
                     <thead>
                         <tr>
                             <th>Критерий</th>
-                            <th>Оценка (%)</th>
-                            <th>Комментарий / Вопросы</th>
+                            <th>Оценка</th>
+                            <th>Комментарий</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Навыки</td>
-                            <td>{{ matching.skills if matching.skills and matching.skills > 1 else (matching.skills or 0) * 100 }}</td>
-                            <td>{{ matching.skills_comment or '' }}</td>
-                        </tr>
-                        <tr>
-                            <td>Опыт работы</td>
-                            <td>{{ matching.work_exp if matching.work_exp and matching.work_exp > 1 else (matching.work_exp or 0) * 100 }}</td>
-                            <td>{{ matching.experience_comment or '' }}</td>
-                        </tr>
-                        <tr>
-                            <td>Возраст</td>
-                            <td>{{ matching.age if matching.age and matching.age > 1 else (matching.age or 0) * 100 }}</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Образование</td>
-                            <td>{{ matching.education if matching.education and matching.education > 1 else (matching.education or 0) * 100 }}</td>
-                            <td>{{ matching.education_comment or '' }}</td>
-                        </tr>
-                        <tr>
-                            <td>Локация</td>
-                            <td>{{ matching.location if matching.location and matching.location > 1 else (matching.location or 0) * 100 }}</td>
-                            <td>{{ matching.location_comment or '' }}</td>
-                        </tr>
-                        <tr>
-                            <td>Технологии</td>
-                            <td>{{ matching.skills_tech if matching.skills_tech and matching.skills_tech > 1 else (matching.skills_tech or 0) * 100 }}</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Языки</td>
-                            <td>{{ matching.languages if matching.languages and matching.languages > 1 else (matching.languages or 0) * 100 }}</td>
-                            <td></td>
-                        </tr>
+                        <tr><td>Возраст</td><td>{% if matching.age == -1 %}Не оценено{% else %}{{ matching.age }}/10{% endif %}</td><td>{{ matching.age_reason }}</td></tr>
+                        <tr><td>Локация</td><td>{% if matching.location == -1 %}Не оценено{% else %}{{ matching.location }}/10{% endif %}</td><td>{{ matching.location_reason }}</td></tr>
+                        <tr><td>Должность</td><td>{% if matching.position == -1 %}Не оценено{% else %}{{ matching.position }}/10{% endif %}</td><td>{{ matching.position_reason }}</td></tr>
+                        <tr><td>Тип занятости</td><td>{% if matching.employment_type == -1 %}Не оценено{% else %}{{ matching.employment_type }}/10{% endif %}</td><td>{{ matching.employment_type_reason }}</td></tr>
+                        <tr><td>Желаемая зарплата</td><td>{% if matching.desired_salary == -1 %}Не оценено{% else %}{{ matching.desired_salary }}/10{% endif %}</td><td>{{ matching.desired_salary_reason }}</td></tr>
+                        <tr><td>Опыт работы</td><td>{% if matching.work_exp == -1 %}Не оценено{% else %}{{ matching.work_exp }}/10{% endif %}</td><td>{{ matching.work_exp_reason }}</td></tr>
+                        <tr><td>Образование</td><td>{% if matching.education == -1 %}Не оценено{% else %}{{ matching.education }}/10{% endif %}</td><td>{{ matching.education_reason }}</td></tr>
+                        <tr><td>Навыки</td><td>{% if matching.skills == -1 %}Не оценено{% else %}{{ matching.skills }}/10{% endif %}</td><td>{{ matching.skills_reason }}</td></tr>
+                        <tr><td>Технологии</td><td>{% if matching.skills_tech == -1 %}Не оценено{% else %}{{ matching.skills_tech }}/10{% endif %}</td><td>{{ matching.skills_tech_reason }}</td></tr>
+                        <tr><td>Языки</td><td>{% if matching.languages == -1 %}Не оценено{% else %}{{ matching.languages }}/10{% endif %}</td><td>{{ matching.languages_reason }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -128,6 +103,20 @@
                 {% if candidate.desired_salary %}
                 <p class="mb-1"><small class="text-muted">Ожидаемая зарплата: {{ candidate.desired_salary }} руб.</small></p>
                 {% endif %}
+            </div>
+        </div>
+        <!-- Итоговая оценка -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-star me-2"></i>Итоговая оценка
+                </h5>
+            </div>
+            <div class="card-body">
+                <h4 class="text-primary">
+                    {% if matching.final_score == -1 %}Не оценено{% else %}{{ matching.final_score }}%{% endif %}
+                </h4>
+                <p class="mb-0">{{ matching.final_score_reason }}</p>
             </div>
         </div>
     </div>

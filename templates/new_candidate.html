@@ -169,7 +169,7 @@
                         <select class="form-select" id="vacancy_id" name="vacancy_id">
                             <option value="">Не выбрано</option>
                             {% for vacancy in vacancies %}
-                            <option value="{{ vacancy.id }}">{{ vacancy.title }} ({{ vacancy.company }})</option>
+                            <option value="{{ vacancy.id }}">{{ vacancy.title }} (ID: {{ vacancy.id }})</option>
                             {% endfor %}
                         </select>
                     </div>

@@ -7,16 +7,15 @@
     <div class="col-12 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 mb-0">{{ candidate.name }}</h1>
-            <p class="text-muted">{{ candidate.position }}</p>
+            <p class="text-muted">{{ candidate.desired_position }}</p>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ url_for('candidates') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Назад
             </a>
-            <a href="{{ url_for('edit_candidate', candidate_id=candidate.id) }}" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-2"></i>Редактировать
-            </a>
-            <button class="btn btn-outline-danger" onclick="confirmDelete('{{ candidate.id }}', '{{ candidate.name }}', 'candidate')">
+            <!-- Кнопка 'Редактировать' удалена -->
+            <form id="deleteCandidateForm" method="post" action="{{ url_for('delete_candidate', candidate_id=candidate.id) }}" style="display:none;"></form>
+            <button class="btn btn-outline-danger" onclick="confirmDeleteCandidate('{{ candidate.id }}', '{{ candidate.name }}')">
                 <i class="fas fa-trash me-2"></i>Удалить
             </button>
             <button class="btn btn-primary" onclick="window.print()">
@@ -54,8 +53,16 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted">Статус</label>
                         <p class="mb-0">
-                            <span class="badge {% if candidate.status == 'new' %}bg-info{% elif candidate.status == 'interview' %}bg-warning{% elif candidate.status == 'hired' %}bg-success{% else %}bg-secondary{% endif %} status-badge">
-                                {% if candidate.status == 'new' %}Новый{% elif candidate.status == 'interview' %}Собеседование{% elif candidate.status == 'hired' %}Принят{% else %}{{ candidate.status }}{% endif %}
+                            <span class="badge
+                                {% if candidate.status == 'new' %}bg-secondary
+                                {% elif candidate.status == 'На собеседовании' %}bg-warning text-dark
+                                {% elif candidate.status == 'Принят' %}bg-success
+                                {% elif candidate.status == 'Отклонено' %}bg-danger
+                                {% else %}bg-light text-dark
+                                {% endif %}">
+                                {% if candidate.status == 'new' %}Новый
+                                {% else %}{{ candidate.status }}
+                                {% endif %}
                             </span>
                         </p>
                     </div>
@@ -99,26 +106,35 @@
     <!-- Боковая панель -->
     <div class="col-lg-4">
         <!-- Скор соответствия -->
-        {% if matching_score is not none %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Соответствие вакансии</h5>
-            </div>
-            <div class="card-body text-center">
-                <div class="matching-score {% if matching_score >= 0.8 %}score-high{% elif matching_score >= 0.6 %}score-medium{% else %}score-low{% endif %}">
-                    {{ "%.0f"|format(matching_score if matching_score > 1 else matching_score * 100) }}%
+        {% if candidate.matching_score is not none and candidate.vacancy_id %}
+        <a href="{{ url_for('detailed_matching', candidate_id=candidate.id, vacancy_id=candidate.vacancy_id) }}" style="text-decoration: none;">
+            <div class="card mb-4" style="cursor:pointer;">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Соответствие вакансии</h5>
                 </div>
-                <p class="text-muted mb-0">
-                    {% if matching_score >= 0.8 %}
-                        Отличное соответствие
-                    {% elif matching_score >= 0.6 %}
-                        Хорошее соответствие
-                    {% else %}
-                        Низкое соответствие
-                    {% endif %}
-                </p>
+                <div class="card-body text-center">
+                    {% set percent = candidate.matching_score if candidate.matching_score > 1 else candidate.matching_score * 100 %}
+                    <div class="matching-score {% if percent >= 80 %}score-high{% elif percent >= 60 %}score-medium{% else %}score-low{% endif %}">
+                        {{ percent|float }}%
+                    </div>
+                    <p class="text-muted mb-0">
+                        {% if percent >= 80 %}
+                            Отличное соответствие
+                        {% elif percent >= 60 %}
+                            Хорошее соответствие
+                        {% else %}
+                            Низкое соответствие
+                        {% endif %}
+                    </p>
+                </div>
             </div>
-        </div>
+        </a>
+        {% endif %}
+
+        {% if candidate.resume_path %}
+        <a href="{{ url_for('download_candidate_resume', candidate_id=candidate.id) }}" class="btn btn-outline-primary w-100 mb-4">
+            <i class="fas fa-download me-2"></i>Скачать резюме
+        </a>
         {% endif %}
 
         <!-- Действия -->
@@ -139,39 +155,61 @@
                     </a>
                     {% endif %}
                     <button class="btn btn-outline-primary">
-                        <i class="fas fa-phone me-2"></i>Позвонить
-                    </button>
-                    <button class="btn btn-outline-primary">
                         <i class="fas fa-envelope me-2"></i>Написать email
                     </button>
-                    <button class="btn btn-outline-warning">
+                    <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#interviewModal" {% if candidate.interview_datetime %}disabled{% endif %}>
                         <i class="fas fa-calendar me-2"></i>Назначить собеседование
                     </button>
-                    <button class="btn btn-outline-success">
-                        <i class="fas fa-check me-2"></i>Принять на работу
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Информация -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Информация</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6">
-                        <small class="text-muted">Добавлен</small>
-                        <p class="mb-0">{{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}</p>
+                    {% if candidate.interview_datetime %}
+                    <div class="alert alert-info mt-2 mb-0 p-2 text-center">
+                        <i class="fas fa-calendar-alt me-1"></i>Собеседование: {{ candidate.interview_datetime|default('—') }}
                     </div>
-                    <div class="col-6">
-                        <small class="text-muted">ID</small>
-                        <p class="mb-0 text-muted">{{ candidate.id|string }}...</p>
-                    </div>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('hire_candidate', candidate_id=candidate.id) }}" style="display: contents;">
+                        <button type="submit" class="btn btn-outline-success">
+                            <i class="fas fa-check me-2"></i>Принять на работу
+                        </button>
+                    </form>
+                    <form method="post" action="{{ url_for('reject_candidate', candidate_id=candidate.id) }}" style="display: contents;">
+                        <button type="submit" class="btn btn-outline-danger mt-2">
+                            <i class="fas fa-phone me-2"></i>Мы вам перезвоним
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Модальное окно для назначения собеседования -->
+<div class="modal fade" id="interviewModal" tabindex="-1" aria-labelledby="interviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('schedule_interview', candidate_id=candidate.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="interviewModalLabel">Назначить собеседование</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+        </div>
+        <div class="modal-body">
+          <label for="interview_datetime" class="form-label">Дата и время</label>
+          <input type="datetime-local" class="form-control" id="interview_datetime" name="interview_datetime" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Назначить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 
+
+{% block scripts %}
+<script>
+function confirmDeleteCandidate(id, name) {
+    if (confirm(`Вы уверены, что хотите удалить кандидата "${name}"?`)) {
+        document.getElementById('deleteCandidateForm').submit();
+    }
+}
+</script>
 {% endblock %} 

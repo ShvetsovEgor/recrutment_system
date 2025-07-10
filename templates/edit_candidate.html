@@ -11,7 +11,7 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">Информация о кандидате</h5>
@@ -223,25 +223,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Информация</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6">
-                        <small class="text-muted">Создан</small>
-                        <p class="mb-0">{{ candidate.created_at[:10] if candidate.created_at else 'Недавно' }}</p>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted">ID</small>
-                        <p class="mb-0 text-muted">{{ candidate.id|string }}...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    {# Удаляю блок 'Информация' в правой части, если он есть #}
 </div>
 
 <script>
